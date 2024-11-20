@@ -4,3 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+winit = "0.28.0"
+metal = "0.24.0"
+objc = "0.2.7"
+objc-foundation = "0.1.1"
