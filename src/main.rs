@@ -1,3 +1,5 @@
+use std::env;
+use std::fs::read_to_string;
 use metal::*;
 use objc::runtime::Object;
 use objc_foundation::NSString;
@@ -36,35 +38,16 @@ fn main() {
         let _: () = msg_send![ns_view, setWantsLayer: true];
     }
 
+    match env::current_dir() {
+        Ok(path) => println!("현재 작업 디렉토리: {}", path.display()),
+        Err(e) => println!("작업 디렉토리를 가져오지 못했습니다: {}", e),
+    }
+
     // Create a simple vertex shader and fragment shader
-    let source = r#"
-        #include <metal_stdlib>
-        using namespace metal;
-
-        struct VertexIn {
-            float4 position [[attribute(0)]];
-            float4 color [[attribute(1)]];
-        };
-
-        struct VertexOut {
-            float4 position [[position]];
-            float4 color;
-        };
-
-        vertex VertexOut vertex_main(VertexIn in [[stage_in]]) {
-            VertexOut out;
-            out.position = in.position;
-            out.color = in.color;
-            return out;
-        }
-
-        fragment float4 fragment_main(VertexOut in [[stage_in]]) {
-            return in.color;
-        }
-    "#;
+    let shader_source = read_to_string("src/render.metal").expect("Failed to read render.metal file");
 
     // Compile the shader code
-    let library = device.new_library_with_source(source, &CompileOptions::new())
+    let library = device.new_library_with_source(&shader_source, &CompileOptions::new())
         .expect("Failed to compile Metal shader");
     let vertex_function = library.get_function("vertex_main", None).unwrap();
     let fragment_function = library.get_function("fragment_main", None).unwrap();
