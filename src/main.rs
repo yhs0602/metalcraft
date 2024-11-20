@@ -1,8 +1,8 @@
 use std::env;
 use std::fs::read_to_string;
+use std::time::{Duration, Instant};
 use metal::*;
 use objc::runtime::Object;
-use objc_foundation::NSString;
 use winit::{
     dpi::LogicalSize,
     event::{Event, WindowEvent},
@@ -92,15 +92,24 @@ fn main() {
         MTLResourceOptions::CPUCacheModeDefaultCache,
     );
 
+    // Variables to track FPS
+    let mut frame_count = 0;
+    let start_time = Instant::now();
+    let mut last_fps_update = Instant::now();
+
     // Start the event loop
     event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
+        *control_flow = ControlFlow::Poll;
 
         match event {
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 ..
             } => *control_flow = ControlFlow::Exit,
+            Event::MainEventsCleared => {
+                // 매 프레임마다 창을 다시 그리도록 요청
+                window.request_redraw();
+            }
             Event::RedrawRequested(_) => {
                 let drawable = layer.next_drawable().unwrap();
                 let render_pass_descriptor = RenderPassDescriptor::new();
@@ -134,8 +143,21 @@ fn main() {
                 render_encoder.end_encoding();
                 command_buffer.present_drawable(&drawable);
                 command_buffer.commit();
+
+                // FPS calculation
+                frame_count += 1;
+                let current_time = Instant::now();
+                if current_time.duration_since(last_fps_update) >= Duration::from_secs(1) {
+                    let elapsed = current_time.duration_since(start_time).as_secs_f32();
+                    let fps = frame_count as f32 / elapsed;
+                    println!("FPS: {:.2}", fps);
+                    last_fps_update = current_time;
+                    // frame_count = 0;
+                }
             }
             _ => {}
         }
+
+        window.request_redraw();
     });
 }
